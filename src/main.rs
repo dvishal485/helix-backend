@@ -9,6 +9,25 @@ use gio::{
     prelude::*,
 };
 
+#[derive(serde::Deserialize)]
+struct GioSetting {
+    schema: String,
+    key: String,
+}
+
+impl GioSetting {
+    fn apply<T: Into<gio::glib::Variant>>(&self, value: T) -> Result<(), &'static str> {
+        let setting = gio::Settings::new(&self.schema);
+        if let Ok(_) = setting.set(self.key.as_str(), value) {
+            setting.apply();
+            gio::Settings::sync();
+            Ok(())
+        } else {
+            Err("Settings couldn't be applied.")
+        }
+    }
+}
+
 fn main() {
     test();
 }
