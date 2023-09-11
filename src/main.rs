@@ -42,19 +42,12 @@ fn test() {
 }
 
 fn get_all_schema() -> HashSet<String> {
-    let mut schemas = HashSet::new();
     gio::SettingsSchemaSource::default()
         .iter()
         .map(|x| x.list_schemas(true))
-        .for_each(|(settings1, settings2)| {
-            schemas.extend(
-                settings1
-                    .into_iter()
-                    .chain(settings2.into_iter())
-                    .map(|x| x.to_string()),
-            )
-        });
-    schemas
+        .flat_map(|(settings1, settings2)| settings1.into_iter().chain(settings2.into_iter()))
+        .map(|x| x.to_string())
+        .collect()
 }
 
 fn get_all_keys_from_schema(
