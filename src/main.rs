@@ -15,6 +15,44 @@ use gio::{
     prelude::*,
 };
 
+#[derive(serde::Deserialize)]
+struct GioSetting {
+    schema: String,
+    key: String,
+}
+
+impl GioSetting {
+    fn apply<T: Into<gio::glib::Variant>>(&self, value: T) -> Result<(), &'static str> {
+        let setting = gio::Settings::new(&self.schema);
+        if let Ok(_) = setting.set(self.key.as_str(), value) {
+            setting.apply();
+            gio::Settings::sync();
+            Ok(())
+        } else {
+            Err("Settings couldn't be applied.")
+        }
+    }
+}
+
+#[derive(serde::Deserialize)]
+struct GioSetting {
+    schema: String,
+    key: String,
+}
+
+impl GioSetting {
+    fn apply<T: Into<gio::glib::Variant>>(&self, value: T) -> Result<(), &'static str> {
+        let setting = gio::Settings::new(&self.schema);
+        if let Ok(_) = setting.set(self.key.as_str(), value) {
+            setting.apply();
+            gio::Settings::sync();
+            Ok(())
+        } else {
+            Err("Settings couldn't be applied.")
+        }
+    }
+}
+
 async fn set_config(Json(body): Json<HashMap<String, String>>) -> impl IntoResponse {
     let schema = body.get("schema").unwrap();
     let key = body.get("key").unwrap();
