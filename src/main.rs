@@ -34,37 +34,11 @@ impl GioSetting {
     }
 }
 
-#[derive(serde::Deserialize)]
-struct GioSetting {
-    schema: String,
-    key: String,
-}
-
-impl GioSetting {
-    fn apply<T: Into<gio::glib::Variant>>(&self, value: T) -> Result<(), &'static str> {
-        let setting = gio::Settings::new(&self.schema);
-        if let Ok(_) = setting.set(self.key.as_str(), value) {
-            setting.apply();
-            gio::Settings::sync();
-            Ok(())
-        } else {
-            Err("Settings couldn't be applied.")
-        }
-    }
-}
-
 async fn set_config(Json(body): Json<HashMap<String, String>>) -> impl IntoResponse {
     let schema = body.get("schema").unwrap();
     let key = body.get("key").unwrap();
     let value = format!("{schema} {key}");
     (StatusCode::OK, value)
-    // let schemas = get_all_schema();
-    // let settings = get_all_keys_from_schema(&schemas, schema).expect("schema not found");
-    // let apply_settings = set_key_from_schema(&settings, schema, key, value);
-    // match apply_settings {
-    //     Ok(_) => format!("{}: {} set to {}", schema, key, value),
-    //     Err(_) => format!("{}: {} not found", schema, key),
-    // }
 }
 
 #[tokio::main]
