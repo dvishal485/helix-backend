@@ -1,29 +1,46 @@
 use std::{
     collections::{HashMap, HashSet},
     io::Read,
+    net::SocketAddr,
 };
 
-use axum::{routing::get, Router};
+use axum::{
+    http::StatusCode,
+    response::IntoResponse,
+    routing::{get, post},
+    Json, Router,
+};
 use gio::{
     glib::{FromVariant, GString, Type},
     prelude::*,
 };
 
-fn main() {
-    test();
+async fn set_config(Json(body): Json<HashMap<String, String>>) -> impl IntoResponse {
+    let schema = body.get("schema").unwrap();
+    let key = body.get("key").unwrap();
+    let value = format!("{schema} {key}");
+    (StatusCode::OK, value)
+    // let schemas = get_all_schema();
+    // let settings = get_all_keys_from_schema(&schemas, schema).expect("schema not found");
+    // let apply_settings = set_key_from_schema(&settings, schema, key, value);
+    // match apply_settings {
+    //     Ok(_) => format!("{}: {} set to {}", schema, key, value),
+    //     Err(_) => format!("{}: {} not found", schema, key),
+    // }
 }
 
-/* #[tokio::main]
+#[tokio::main]
 async fn main() {
     // build our application with a single route
-    let app = Router::new().route("/", get(|| async { "Hello, World!" }));
+    // with a POST route which receives a JSON body
+    let app = Router::new().route("/set_config", post(set_config));
 
     // run it with hyper on localhost:3000
-    axum::Server::bind(&"0.0.0.0:3000".parse().unwrap())
+    axum::Server::bind(&SocketAddr::from(([0, 0, 0, 0], 3000)))
         .serve(app.into_make_service())
         .await
         .unwrap();
-} */
+}
 
 fn test() {
     let schema = "org.gnome.desktop.sound";
