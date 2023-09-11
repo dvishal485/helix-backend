@@ -26,19 +26,14 @@ async fn main() {
 } */
 
 fn test() {
-    println!("{:?}", get_all_schema());
-    println!(
-        "{:?}",
-        get_all_keys_from_schema(get_all_schema(), "com.ubuntu.login-screen")
-    );
-    println!(
-        "{:?}",
-        get_key_from_schema::<String>(
-            get_all_keys_from_schema(get_all_schema(), "com.ubuntu.login-screen").unwrap(),
-            "com.ubuntu.login-screen",
-            "background-size"
-        )
-    );
+    let schema = "org.gnome.desktop.sound";
+    let key = "allow-volume-above-100-percent";
+    let schemas = get_all_schema();
+    let settings = get_all_keys_from_schema(&schemas, schema).expect("schema not found");
+    println!("{:?}", get_key_from_schema::<bool>(&settings, schema, key));
+    let apply_settings = set_key_from_schema(&settings, schema, key, false);
+    println!("{:?}", apply_settings);
+    println!("{:?}", get_key_from_schema::<bool>(&settings, schema, key));
 }
 
 fn get_all_schema() -> HashSet<String> {
@@ -51,7 +46,7 @@ fn get_all_schema() -> HashSet<String> {
 }
 
 fn get_all_keys_from_schema(
-    available_schemas: HashSet<String>,
+    available_schemas: &HashSet<String>,
     schema: &str,
 ) -> Option<HashSet<String>> {
     if available_schemas.contains(schema) {
@@ -70,7 +65,7 @@ fn get_all_keys_from_schema(
 }
 
 fn get_key_from_schema<T: FromVariant>(
-    available_keys: HashSet<String>,
+    available_keys: &HashSet<String>,
     schema: &str,
     key: &str,
 ) -> Result<T, ()> {
@@ -84,15 +79,21 @@ fn get_key_from_schema<T: FromVariant>(
 }
 
 fn set_key_from_schema<T: Into<gio::glib::Variant>>(
-    available_keys: HashSet<String>,
+    available_keys: &HashSet<String>,
     schema: &str,
     key: &str,
     value: T,
-) -> Result<(), ()> {
+) -> Result<(), &'static str> {
     if available_keys.contains(key) {
         let setting = gio::Settings::new(schema);
-        setting.set(key, value).map_err(|_| ())
+        if let Ok(_) = setting.set(key, value) {
+            setting.apply();
+            gio::Settings::sync();
+            Ok(())
+        } else {
+            Err("Settings couldn't be applied.")
+        }
     } else {
-        Err(())
+        Err("Key not found. Ensure you pass HashSet of Keys.")
     }
 }
