@@ -12,13 +12,13 @@ use axum::{
     Json, Router,
 };
 use serde::Serializer;
-use serde_json::Value;
+use serde_json::{json, Value};
 use std::{collections::HashMap, net::SocketAddr};
 
-pub mod cli_wrap;
 pub mod gio_wrap;
+pub mod modprobe_wrap;
 pub mod settings;
-use cli_wrap::*;
+use modprobe_wrap::*;
 use settings::*;
 
 fn construct_id_map() -> HashMap<u32, SettingsType> {
@@ -67,8 +67,9 @@ async fn get_all_configs(
 
     let schema_key_map = gio_wrap::get_schema_key_map(system_gio_schemas);
 
-    let matched_gio_settings: Vec<u32> = all_settings
+    let matched_gio_settings: Vec<(u32, Types)> = all_settings
         .iter()
+        // @TODO: Implement another pass for Modprobe settings.
         .filter_map(|(&id, setting)| {
             let setting = match setting {
                 SettingsType::GioSettings(x) => x,
@@ -78,13 +79,30 @@ async fn get_all_configs(
             let schema = setting.schema.as_str();
             let key = setting.key.as_str();
 
-            schema_key_map
-                .get(schema)
-                .and_then(|keys| keys.iter().find(|x| *x == key).map(|_| id))
+            schema_key_map.get(schema).and_then(|keys| {
+                keys.iter().find(|x| key == *x).map(|_| {
+                    let value = Types::from(match setting.value_type.as_str() {
+                        "bool" => Value::from(gio_wrap::get_value_from_schema_unchecked::<bool>(
+                            schema, key,
+                        )),
+                        "string" => Value::from(
+                            gio_wrap::get_value_from_schema_unchecked::<String>(schema, key),
+                        ),
+                        "double" => Value::from(gio_wrap::get_value_from_schema_unchecked::<f64>(
+                            schema, key,
+                        )),
+                        "int" => Value::from(gio_wrap::get_value_from_schema_unchecked::<i64>(
+                            schema, key,
+                        )),
+                        _ => unreachable!("Invalid value_type"),
+                    });
+                    (id, value)
+                })
+            })
         })
         .collect();
 
-    (StatusCode::OK, format!("{matched_gio_settings:?}"))
+    (StatusCode::OK, json!(matched_gio_settings).to_string())
 }
 
 #[tokio::main]

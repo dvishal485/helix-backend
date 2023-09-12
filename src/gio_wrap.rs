@@ -1,11 +1,15 @@
 use gio::{glib::FromVariant, prelude::*};
 use std::collections::{HashMap, HashSet};
 
+use crate::settings::Types;
+
 pub fn get_all_schema() -> HashSet<String> {
     gio::SettingsSchemaSource::default()
         .iter()
         .map(|x| x.list_schemas(true))
-        .flat_map(|(settings1, settings2)| settings1.into_iter().chain(settings2.into_iter()))
+        .flat_map(
+            |(settings1, settings2)| settings1.into_iter(), /*.chain(settings2.into_iter()) */
+        )
         .map(|x| x.to_string())
         .collect()
 }
@@ -48,7 +52,7 @@ pub fn get_schema_key_map(available_schemas: HashSet<String>) -> HashMap<String,
         .collect()
 }
 
-pub fn get_key_from_schema<T: FromVariant>(
+pub fn get_value_from_schema<T: FromVariant>(
     available_keys: &HashSet<String>,
     schema: &str,
     key: &str,
@@ -60,6 +64,12 @@ pub fn get_key_from_schema<T: FromVariant>(
     } else {
         Err(())
     }
+}
+
+pub fn get_value_from_schema_unchecked<T: FromVariant>(schema: &str, key: &str) -> T {
+    let setting = gio::Settings::new(schema);
+    let value = setting.get::<T>(key);
+    value
 }
 
 pub fn set_key_from_schema<T: Into<gio::glib::Variant>>(

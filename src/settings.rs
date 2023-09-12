@@ -1,6 +1,10 @@
-use gio::prelude::*;
+use std::borrow::Cow;
+
+use gio::{glib::FromVariant, prelude::*};
 use serde::Serialize;
 use serde_json::Value;
+
+use crate::modprobe_wrap::Modprobe;
 
 /* This trait is applicable on all
  * types of settings, it is used
@@ -22,19 +26,13 @@ pub struct IncomingSettings {
     pub value: Option<Types>,
 }
 
-#[derive(serde::Deserialize, Serialize, Debug)]
-#[serde(untagged)]
 /* Types of the value passed, this struct
- * and its corresponding impl blocks are
- * needed to parse the incoming value
- * from the POST request
- *
- * ToDo: remove this Types struct
- * and directly use the Value enum
- * provided by serde_json
- *
- */
-#[derive(Clone)]
+* and its corresponding impl blocks are
+* needed to parse the incoming value
+* from the POST request
+*/
+#[derive(serde::Deserialize, Serialize, Debug, Clone)]
+#[serde(untagged)]
 pub enum Types {
     Bool(bool),
     Int(i64),
@@ -72,6 +70,7 @@ impl Into<gio::glib::Variant> for Types {
 #[serde(untagged)]
 pub enum SettingsType {
     GioSettings(GioSetting),
+    ModProbe(Modprobe),
     #[default]
     Invalid,
 }
@@ -80,6 +79,7 @@ impl ApplySettings for SettingsType {
     fn apply(&mut self) -> Result<(), &'static str> {
         match self {
             SettingsType::GioSettings(x) => x.apply(),
+            Self::ModProbe(x) => x.apply(),
             SettingsType::Invalid => Err("Invalid SettingsType"),
         }
     }
@@ -87,6 +87,7 @@ impl ApplySettings for SettingsType {
     fn set_value(&mut self, value: Types) {
         match self {
             SettingsType::GioSettings(x) => x.set_value(value),
+            SettingsType::ModProbe(x) => x.set_value(value),
             SettingsType::Invalid => (),
         }
     }
@@ -96,6 +97,7 @@ impl ApplySettings for SettingsType {
 pub struct GioSetting {
     pub schema: String,
     pub key: String,
+    pub value_type: String,
     pub value: Option<Types>,
 }
 
