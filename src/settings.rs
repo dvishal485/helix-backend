@@ -1,0 +1,117 @@
+use gio::prelude::*;
+use serde_json::Value;
+
+/* This trait is applicable on all
+ * types of settings, it is used
+ * to apply the settings
+ */
+pub trait ApplySettings {
+    fn apply(&mut self) -> Result<(), &'static str>;
+    fn set_value(&mut self, value: Types);
+}
+
+#[derive(serde::Deserialize, Debug)]
+/* POST request will have this structure
+ * Frontend will only give us the id of
+ * setting to be modified and the
+ * modified value
+ */
+pub struct IncomingSettings {
+    pub id: u32,
+    pub value: Option<Types>,
+}
+
+#[derive(serde::Deserialize, Debug)]
+#[serde(untagged)]
+/* Types of the value passed, this struct
+ * and its corresponding impl blocks are
+ * needed to parse the incoming value
+ * from the POST request
+ *
+ * ToDo: remove this Types struct
+ * and directly use the Value enum
+ * provided by serde_json
+ */
+pub enum Types {
+    Bool(bool),
+    Int(i64),
+    Double(f64),
+    String(String),
+}
+
+impl From<Value> for Types {
+    fn from(value: Value) -> Self {
+        match value {
+            Value::String(s) => Types::String(s),
+            Value::Bool(b) => Types::Bool(b),
+            Value::Number(n) if n.as_i64().is_none() => Types::Double(n.as_f64().unwrap()),
+            Value::Number(n) => Types::Int(n.as_i64().unwrap()),
+            _ => panic!("Expected string or boolean"),
+        }
+    }
+}
+
+impl Into<gio::glib::Variant> for Types {
+    fn into(self) -> gio::glib::Variant {
+        match self {
+            Types::Bool(x) => x.into(),
+            Types::Int(x) => x.into(),
+            Types::Double(x) => x.into(),
+            Types::String(x) => x.into(),
+        }
+    }
+}
+
+/* This struct is used to parse the
+ * settings.json file
+ */
+#[derive(serde::Deserialize, Debug, Default)]
+#[serde(untagged)]
+pub enum SettingsType {
+    GioSettings(GioSetting),
+    #[default]
+    Invalid,
+}
+
+impl ApplySettings for SettingsType {
+    fn apply(&mut self) -> Result<(), &'static str> {
+        match self {
+            SettingsType::GioSettings(x) => x.apply(),
+            SettingsType::Invalid => Err("Invalid SettingsType"),
+        }
+    }
+
+    fn set_value(&mut self, value: Types) {
+        match self {
+            SettingsType::GioSettings(x) => x.set_value(value),
+            SettingsType::Invalid => (),
+        }
+    }
+}
+
+#[derive(serde::Deserialize, Debug)]
+pub struct GioSetting {
+    pub schema: String,
+    pub key: String,
+    pub value: Option<Types>,
+}
+
+impl ApplySettings for GioSetting {
+    fn apply(&mut self) -> Result<(), &'static str> {
+        let setting = gio::Settings::new(&self.schema);
+        let value = self.value.take().unwrap();
+        if let Ok(_) = setting.set(self.key.as_str(), value) {
+            setting.apply();
+            gio::Settings::sync();
+            Ok(())
+        } else {
+            Err("Settings couldn't be applied.")
+        }
+    }
+
+    fn set_value(&mut self, value: Types) {
+        let value = value.into();
+        self.value = Some(value);
+    }
+}
+
