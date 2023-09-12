@@ -4,11 +4,21 @@
  * Also I'm sleepy, so I'm not gonna clean it up.
  * Thanks for understanding.
  */
-use axum::{http::StatusCode, response::IntoResponse, routing::post, Json, Router};
+use axum::{
+    extract::State,
+    http::StatusCode,
+    response::IntoResponse,
+    routing::{get, post},
+    Json, Router,
+};
+use serde::Serializer;
 use serde_json::Value;
 use std::{collections::HashMap, net::SocketAddr};
+
+pub mod cli_wrap;
 pub mod gio_wrap;
 pub mod settings;
+use cli_wrap::*;
 use settings::*;
 
 fn construct_id_map() -> HashMap<u32, SettingsType> {
@@ -17,27 +27,30 @@ fn construct_id_map() -> HashMap<u32, SettingsType> {
         include_str!("../settings.json"),
     );
     settings
-        .unwrap()
+        .expect("Couldn't construct settings map from settings.json")
         .into_iter()
         .map(|setting| {
             (
-                setting["id"].as_u64().unwrap() as u32,
+                setting["id"]
+                    .as_u64()
+                    .expect("One of setting['id'] not a valid u64.") as u32,
                 serde_json::from_value::<SettingsType>(setting).unwrap(),
             )
         })
         .collect::<HashMap<u32, SettingsType>>()
 }
 
-async fn set_config(Json(mut body): Json<IncomingSettings>) -> impl IntoResponse {
-    let mut settings_map = construct_id_map();
-    let Some(value) = body.value.take() else {
+async fn set_config(
+    State(all_settings): State<&HashMap<u32, SettingsType>>,
+    Json(body): Json<IncomingSettings>,
+) -> impl IntoResponse {
+    let Some(value) = body.value else {
         return (StatusCode::BAD_REQUEST, "value not found");
     };
-    let Some(setting) = settings_map.get_mut(&body.id) else {
+    let Some(mut setting) = all_settings.get(&body.id).cloned() else {
         return (StatusCode::BAD_REQUEST, "setting not found");
     };
 
-    let mut setting = std::mem::take(setting);
     setting.set_value(value);
 
     if let Err(e) = setting.apply() {
@@ -47,23 +60,52 @@ async fn set_config(Json(mut body): Json<IncomingSettings>) -> impl IntoResponse
     (StatusCode::OK, "ok")
 }
 
+async fn get_all_configs(
+    State(all_settings): State<&HashMap<u32, SettingsType>>,
+) -> impl IntoResponse {
+    let system_gio_schemas = gio_wrap::get_all_schema();
+
+    let schema_key_map = gio_wrap::get_schema_key_map(system_gio_schemas);
+
+    let matched_gio_settings: Vec<u32> = all_settings
+        .iter()
+        .filter_map(|(&id, setting)| {
+            let setting = match setting {
+                SettingsType::GioSettings(x) => x,
+                _ => return None,
+            };
+
+            let schema = setting.schema.as_str();
+            let key = setting.key.as_str();
+
+            schema_key_map
+                .get(schema)
+                .and_then(|keys| keys.iter().find(|x| *x == key).map(|_| id))
+        })
+        .collect();
+
+    (StatusCode::OK, format!("{matched_gio_settings:?}"))
+}
+
 #[tokio::main]
 async fn main() {
-    let app = Router::new().route("/set_config", post(set_config));
+    let settings_map = Box::leak(Box::new(construct_id_map()));
+    let settings_map = &*settings_map;
+
+    let app = Router::new()
+        .route("/set_config", post(set_config))
+        .route("/get_all_config", get(get_all_configs))
+        .with_state(settings_map);
     // .route("/set_config", get(get_configs));
 
-    axum::Server::bind(&SocketAddr::from(([0, 0, 0, 0], 3000)))
+    _ = axum::Server::bind(&SocketAddr::from(([0, 0, 0, 0], 3000)))
         .serve(app.into_make_service())
         .await
         .unwrap();
 }
 
 #[test]
-fn test() {
-    use gio_wrap::*;
-    let schema = "org.gnome.desktop.sound";
-    let key = "allow-volume-above-100-percent";
-    let schemas = get_all_schema();
-    let settings = get_all_keys_from_schema(&schemas, schema).expect("schema not found");
-    set_key_from_schema(&settings, schema, key, false).expect("key not found");
+fn construct_id_map_test() {
+    let settings_map = construct_id_map();
+    eprintln!("{:?}", settings_map);
 }

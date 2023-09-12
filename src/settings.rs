@@ -1,4 +1,5 @@
 use gio::prelude::*;
+use serde::Serialize;
 use serde_json::Value;
 
 /* This trait is applicable on all
@@ -21,7 +22,7 @@ pub struct IncomingSettings {
     pub value: Option<Types>,
 }
 
-#[derive(serde::Deserialize, Debug)]
+#[derive(serde::Deserialize, Serialize, Debug)]
 #[serde(untagged)]
 /* Types of the value passed, this struct
  * and its corresponding impl blocks are
@@ -31,7 +32,9 @@ pub struct IncomingSettings {
  * ToDo: remove this Types struct
  * and directly use the Value enum
  * provided by serde_json
+ *
  */
+#[derive(Clone)]
 pub enum Types {
     Bool(bool),
     Int(i64),
@@ -65,7 +68,7 @@ impl Into<gio::glib::Variant> for Types {
 /* This struct is used to parse the
  * settings.json file
  */
-#[derive(serde::Deserialize, Debug, Default)]
+#[derive(serde::Deserialize, Debug, Default, Clone)]
 #[serde(untagged)]
 pub enum SettingsType {
     GioSettings(GioSetting),
@@ -89,7 +92,7 @@ impl ApplySettings for SettingsType {
     }
 }
 
-#[derive(serde::Deserialize, Debug)]
+#[derive(serde::Deserialize, Serialize, Debug, Clone)]
 pub struct GioSetting {
     pub schema: String,
     pub key: String,
@@ -99,7 +102,10 @@ pub struct GioSetting {
 impl ApplySettings for GioSetting {
     fn apply(&mut self) -> Result<(), &'static str> {
         let setting = gio::Settings::new(&self.schema);
-        let value = self.value.take().unwrap();
+        let Some(value) = self.value.take() else {
+            return Err("No value to apply");
+        };
+
         if let Ok(_) = setting.set(self.key.as_str(), value) {
             setting.apply();
             gio::Settings::sync();
@@ -110,8 +116,6 @@ impl ApplySettings for GioSetting {
     }
 
     fn set_value(&mut self, value: Types) {
-        let value = value.into();
         self.value = Some(value);
     }
 }
-
