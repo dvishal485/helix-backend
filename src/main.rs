@@ -1,8 +1,9 @@
 use serde_json::Value;
 use std::{
     collections::{HashMap, HashSet},
+    fmt::Display,
     io::Read,
-    net::SocketAddr, fmt::Display,
+    net::SocketAddr,
 };
 
 use axum::{
@@ -23,6 +24,18 @@ pub enum Types {
     Int(i64),
     Double(f64),
     String(String),
+}
+
+
+impl StaticVariantType for Types {
+    fn static_variant_type() -> std::borrow::Cow<'static, gio::glib::VariantTy> {
+        todo!()
+    }
+}
+impl FromVariant for Types {
+    fn from_variant(variant: &gio::glib::Variant) -> Option<Self> {
+        todo!()
+    }
 }
 
 impl From<Value> for Types {
@@ -47,7 +60,7 @@ impl Into<gio::glib::Variant> for Types {
 }
 
 #[derive(serde::Deserialize, Debug)]
-struct GioSetting {
+pub struct GioSetting {
     schema: String,
     key: String,
     value: Option<Types>,
@@ -77,11 +90,28 @@ async fn set_config(Json(mut body): Json<GioSetting>) -> impl IntoResponse {
     (StatusCode::OK, "ok")
 }
 
+#[derive(serde::Deserialize, Debug)]
+#[serde(untagged)]
+pub enum SettingsAvailable {
+    GioSettings(GioSetting),
+}
+
+async fn get_config(Json(body): Json<SettingsAvailable>) -> impl IntoResponse {
+    match body {
+        SettingsAvailable::GioSettings(mut req) => {
+            let setting = gio::Settings::new(&req.schema);
+            let value = setting.get::<Types>(&req.key);
+            (StatusCode::OK)
+        }
+        _ => unreachable!(),
+    }
+}
 #[tokio::main]
 async fn main() {
     // build our application with a single route
     // with a POST route which receives a JSON body
     let app = Router::new().route("/set_config", post(set_config));
+    // .route("/set_config", get(get_configs));
 
     // run it with hyper on localhost:3000
     axum::Server::bind(&SocketAddr::from(([0, 0, 0, 0], 3000)))
