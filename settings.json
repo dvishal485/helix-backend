@@ -1,46 +1,129 @@
-[
-    {
-        "type": "gio",
-        "id": 1,
-        "name": "Lock screen notifications",
-        "description": "Show notifications on the lock screen",
-        "value_type": "bool",
-        "schema": "org.gnome.desktop.notifications",
-        "key": "show-in-lock-screen"
-    },
-    {
-        "type": "gio",
-        "id": 2,
-        "name": "Boost volume",
-        "description": "Allow boosting volume above 100%",
-        "value_type": "bool",
-        "schema": "org.gnome.desktop.sound",
-        "key": "allow-volume-above-100-percent"
-    },
-    {
-        "type": "gio",
-        "id": 3,
-        "name": "USBGuard Service",
-        "description": "If the USBGuard service is present and this setting is enabled, USB devices will be protected as configured in the usb-protection-level setting.",
-        "value_type": "bool",
-        "schema": "org.gnome.desktop.privacy",
-        "key": "usb-protection"
-    },
-    {
-        "type": "gio",
-        "id": 4,
-        "name": "Show battery percentage",
-        "description": "Show battery percentage in the top bar",
-        "value_type": "bool",
-        "schema": "org.gnome.desktop.interface",
-        "key": "show-battery-percentage"
-    },
-    {
-        "type": "modprobe",
-        "id": 5,
-        "name": "Enable/Disable camera",
-        "description": "Enable or Disable camera hardware",
-        "value_type": "bool",
-        "driver": "uvcvideo"
-    }
-]
+{
+    "GioSettings": [
+        {
+            "description": "If TRUE, applications should not use the camera.",
+            "id": "1",
+            "key": "disable-camera",
+            "name": "disable camera",
+            "schema": "org.gnome.desktop.privacy",
+            "setting_type": "gio",
+            "value_type": "b"
+        },
+        {
+            "description": "If TRUE, applications should not use the microphone.",
+            "id": "2",
+            "key": "disable-microphone",
+            "name": "disable microphone",
+            "schema": "org.gnome.desktop.privacy",
+            "setting_type": "gio",
+            "value_type": "b"
+        },
+        {
+            "description": "If TRUE, applications should not make sound.",
+            "id": "3",
+            "key": "disable-sound-output",
+            "name": "disable sound output",
+            "schema": "org.gnome.desktop.privacy",
+            "setting_type": "gio",
+            "value_type": "b"
+        },
+        {
+            "description": "If set to true, the system will make an effort to not divulge the user’s identity on screen or on the network.",
+            "id": "4",
+            "key": "hide-identity",
+            "name": "hide identity",
+            "schema": "org.gnome.desktop.privacy",
+            "setting_type": "gio",
+            "value_type": "b"
+        },
+        {
+            "description": "Consider trash and temporary files old after this many days.",
+            "id": "5",
+            "key": "old-files-age",
+            "name": "old files age",
+            "schema": "org.gnome.desktop.privacy",
+            "setting_type": "gio",
+            "value_type": "u"
+        },
+        {
+            "description": "If the underlying hardware has privacy screen support and this setting is enabled, the panels supporting this technology will be obscured from lateral view.",
+            "id": "6",
+            "key": "privacy-screen",
+            "name": "privacy screen",
+            "schema": "org.gnome.desktop.privacy",
+            "setting_type": "gio",
+            "value_type": "b"
+        },
+        {
+            "description": "Recently used files will be remembered for this many days. If set to 0, recent files will not be remembered; if set to -1, they will be retained indefinitely.",
+            "id": "7",
+            "key": "recent-files-max-age",
+            "name": "recent files max age",
+            "schema": "org.gnome.desktop.privacy",
+            "setting_type": "gio",
+            "value_type": "i"
+        },
+        {
+            "description": "If FALSE, application usage will not be monitored and recorded.",
+            "id": "8",
+            "key": "remember-app-usage",
+            "name": "remember app usage",
+            "schema": "org.gnome.desktop.privacy",
+            "setting_type": "gio",
+            "value_type": "b"
+        },
+        {
+            "description": "If FALSE, applications will not remember recently used files.",
+            "id": "9",
+            "key": "remember-recent-files",
+            "name": "remember recent files",
+            "schema": "org.gnome.desktop.privacy",
+            "setting_type": "gio",
+            "value_type": "b"
+        },
+        {
+            "description": "If TRUE, automatically remove temporary files when they are older than “old-files-age” days.",
+            "id": "10",
+            "key": "remove-old-temp-files",
+            "name": "remove old temp files",
+            "schema": "org.gnome.desktop.privacy",
+            "setting_type": "gio",
+            "value_type": "b"
+        },
+        {
+            "description": "If TRUE, automatically remove files from the trash when they are older than “old-files-age” days.",
+            "id": "11",
+            "key": "remove-old-trash-files",
+            "name": "remove old trash files",
+            "schema": "org.gnome.desktop.privacy",
+            "setting_type": "gio",
+            "value_type": "b"
+        },
+        {
+            "description": "If TRUE, anonymized reports will be sent automatically to the vendor.",
+            "id": "12",
+            "key": "report-technical-problems",
+            "name": "report technical problems",
+            "schema": "org.gnome.desktop.privacy",
+            "setting_type": "gio",
+            "value_type": "b"
+        },
+        {
+            "type": "gio",
+            "id": 3,
+            "name": "USBGuard Service",
+            "description": "If the USBGuard service is present and this setting is enabled, USB devices will be protected as configured in the usb-protection-level setting.",
+            "value_type": "bool",
+            "schema": "org.gnome.desktop.privacy",
+            "key": "usb-protection"
+        },
+        {
+            "type": "gio",
+            "id": 4,
+            "name": "Show battery percentage",
+            "description": "Show battery percentage in the top bar",
+            "value_type": "bool",
+            "schema": "org.gnome.desktop.interface",
+            "key": "show-battery-percentage"
+        }
+    ]
