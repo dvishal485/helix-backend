@@ -22,7 +22,7 @@ fn construct_id_map() -> HashMap<u32, SettingsType> {
         .map(|setting| {
             (
                 setting["id"].as_u64().unwrap() as u32,
-                serde_json::from_value::<SettingsType>(setting.clone()).unwrap(),
+                serde_json::from_value::<SettingsType>(setting).unwrap(),
             )
         })
         .collect::<HashMap<u32, SettingsType>>()
