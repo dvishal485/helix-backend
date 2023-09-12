@@ -1,7 +1,8 @@
+use serde_json::Value;
 use std::{
     collections::{HashMap, HashSet},
     io::Read,
-    net::SocketAddr,
+    net::SocketAddr, fmt::Display,
 };
 
 use axum::{
@@ -15,15 +16,47 @@ use gio::{
     prelude::*,
 };
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Debug)]
+#[serde(untagged)]
+pub enum Types {
+    Bool(bool),
+    Int(i64),
+    Double(f64),
+    String(String),
+}
+
+impl From<Value> for Types {
+    fn from(value: Value) -> Self {
+        match value {
+            Value::String(s) => Types::String(s),
+            Value::Bool(b) => Types::Bool(b),
+            _ => panic!("Expected string or boolean"),
+        }
+    }
+}
+
+impl Into<gio::glib::Variant> for Types {
+    fn into(self) -> gio::glib::Variant {
+        match self {
+            Types::Bool(x) => x.into(),
+            Types::Int(x) => x.into(),
+            Types::Double(x) => x.into(),
+            Types::String(x) => x.into(),
+        }
+    }
+}
+
+#[derive(serde::Deserialize, Debug)]
 struct GioSetting {
     schema: String,
     key: String,
+    value: Option<Types>,
 }
 
 impl GioSetting {
-    fn apply<T: Into<gio::glib::Variant>>(&self, value: T) -> Result<(), &'static str> {
+    fn apply(&mut self) -> Result<(), &'static str> {
         let setting = gio::Settings::new(&self.schema);
+        let value = self.value.take().unwrap();
         if let Ok(_) = setting.set(self.key.as_str(), value) {
             setting.apply();
             gio::Settings::sync();
@@ -34,11 +67,14 @@ impl GioSetting {
     }
 }
 
-async fn set_config(Json(body): Json<HashMap<String, String>>) -> impl IntoResponse {
-    let schema = body.get("schema").unwrap();
-    let key = body.get("key").unwrap();
-    let value = format!("{schema} {key}");
-    (StatusCode::OK, value)
+async fn set_config(Json(mut body): Json<GioSetting>) -> impl IntoResponse {
+    if body.value.is_none() {
+        return (StatusCode::BAD_REQUEST, "value not found");
+    }
+    if let Err(e) = body.apply() {
+        return (StatusCode::BAD_REQUEST, e);
+    }
+    (StatusCode::OK, "ok")
 }
 
 #[tokio::main]
