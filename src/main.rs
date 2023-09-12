@@ -1,20 +1,15 @@
+/*
+ * I know the code is dirty, and I'm sorry about it.
+ * I am an average developer, and I'm still learning.
+ * Also I'm sleepy, so I'm not gonna clean it up.
+ * Thanks for understanding.
+ */
+use axum::{http::StatusCode, response::IntoResponse, routing::post, Json, Router};
+use gio::{glib::FromVariant, prelude::*};
 use serde_json::Value;
 use std::{
     collections::{HashMap, HashSet},
-    fmt::Display,
-    io::Read,
     net::SocketAddr,
-};
-
-use axum::{
-    http::StatusCode,
-    response::IntoResponse,
-    routing::{get, post},
-    Json, Router,
-};
-use gio::{
-    glib::{FromVariant, GString, Type},
-    prelude::*,
 };
 
 #[derive(serde::Deserialize, Debug)]
@@ -24,18 +19,6 @@ pub enum Types {
     Int(i64),
     Double(f64),
     String(String),
-}
-
-
-impl StaticVariantType for Types {
-    fn static_variant_type() -> std::borrow::Cow<'static, gio::glib::VariantTy> {
-        todo!()
-    }
-}
-impl FromVariant for Types {
-    fn from_variant(variant: &gio::glib::Variant) -> Option<Self> {
-        todo!()
-    }
 }
 
 impl From<Value> for Types {
@@ -60,13 +43,48 @@ impl Into<gio::glib::Variant> for Types {
 }
 
 #[derive(serde::Deserialize, Debug)]
+pub struct IncomingSettings {
+    id: u32,
+    value: Option<Types>,
+}
+
+pub trait ApplySettings {
+    fn apply(&mut self) -> Result<(), &'static str>;
+    fn set_value(&mut self, value: Types);
+}
+
+#[derive(serde::Deserialize, Debug, Default)]
+#[serde(untagged)]
+pub enum SettingsType {
+    GioSettings(GioSetting),
+    #[default]
+    Invalid,
+}
+
+#[derive(serde::Deserialize, Debug)]
 pub struct GioSetting {
     schema: String,
     key: String,
     value: Option<Types>,
 }
 
-impl GioSetting {
+impl ApplySettings for SettingsType {
+    fn apply(&mut self) -> Result<(), &'static str> {
+        match self {
+            SettingsType::GioSettings(x) => x.apply(),
+            SettingsType::Invalid => Err("Invalid SettingsType"),
+        }
+    }
+
+    fn set_value(&mut self, value: Types) {
+        match self {
+            SettingsType::GioSettings(x) => x.set_value(value),
+            SettingsType::Invalid => (),
+        }
+    }
+}
+
+impl ApplySettings for GioSetting {
     fn apply(&mut self) -> Result<(), &'static str> {
         let setting = gio::Settings::new(&self.schema);
         let value = self.value.take().unwrap();
@@ -78,15 +96,46 @@ impl GioSetting {
             Err("Settings couldn't be applied.")
         }
     }
+
+    fn set_value(&mut self, value: Types) {
+        let value = value.into();
+        self.value = Some(value);
+    }
 }
 
-async fn set_config(Json(mut body): Json<GioSetting>) -> impl IntoResponse {
-    if body.value.is_none() {
+fn construct_id_map() -> HashMap<u32, SettingsType> {
+    let settings = serde_json::from_str::<Vec<Value>>(
+        // &std::fs::read_to_string("settings.json").expect("settings.json not found"),
+        include_str!("../settings.json"),
+    );
+    settings
+        .unwrap()
+        .into_iter()
+        .map(|setting| {
+            (
+                setting["id"].as_u64().unwrap() as u32,
+                serde_json::from_value::<SettingsType>(setting.clone()).unwrap(),
+            )
+        })
+        .collect::<HashMap<u32, SettingsType>>()
+}
+
+async fn set_config(Json(mut body): Json<IncomingSettings>) -> impl IntoResponse {
+    let mut settings_map = construct_id_map();
+    let Some(value) = body.value.take() else {
         return (StatusCode::BAD_REQUEST, "value not found");
-    }
-    if let Err(e) = body.apply() {
+    };
+    let Some(setting) = settings_map.get_mut(&body.id) else {
+        return (StatusCode::BAD_REQUEST, "setting not found");
+    };
+
+    let mut setting = std::mem::take(setting);
+    setting.set_value(value);
+
+    if let Err(e) = setting.apply() {
         return (StatusCode::BAD_REQUEST, e);
     }
+
     (StatusCode::OK, "ok")
 }
 
@@ -96,24 +145,11 @@ pub enum SettingsAvailable {
     GioSettings(GioSetting),
 }
 
-async fn get_config(Json(body): Json<SettingsAvailable>) -> impl IntoResponse {
-    match body {
-        SettingsAvailable::GioSettings(mut req) => {
-            let setting = gio::Settings::new(&req.schema);
-            let value = setting.get::<Types>(&req.key);
-            (StatusCode::OK)
-        }
-        _ => unreachable!(),
-    }
-}
 #[tokio::main]
 async fn main() {
-    // build our application with a single route
-    // with a POST route which receives a JSON body
     let app = Router::new().route("/set_config", post(set_config));
     // .route("/set_config", get(get_configs));
 
-    // run it with hyper on localhost:3000
     axum::Server::bind(&SocketAddr::from(([0, 0, 0, 0], 3000)))
         .serve(app.into_make_service())
         .await
