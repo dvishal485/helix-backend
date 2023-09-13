@@ -75,13 +75,9 @@ async fn get_all_configs(
                     SettingsType::GioSettings(setting) => {
                         let schema = setting.schema.as_str();
                         let key = setting.key.as_str();
-                        let Some(setting) = schema_key_map.get(schema).and_then(|keys| {
-                            keys.iter()
-                                .find(|x| key == *x)
-                                .map(|_| setting.into())
-                        }) else {
-                            return None;
-                        };
+                        let setting = schema_key_map.get(schema).and_then(|keys| {
+                            keys.iter().find(|x| key == *x).map(|_| setting.into())
+                        })?;
                         setting
                     }
                     SettingsType::ModProbe(setting) => {
