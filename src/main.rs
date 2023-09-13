@@ -68,37 +68,27 @@ async fn get_all_configs(
     let schema_key_map = gio_wrap::get_schema_key_map(system_gio_schemas);
 
     let matched_gio_settings: Vec<(u32, Types)> = all_settings
-        .iter()
-        // @TODO: Implement another pass for Modprobe settings.
+        .into_iter()
         .filter_map(|(&id, setting)| {
-            let setting = match setting {
-                SettingsType::GioSettings(x) => x,
-                _ => return None,
-            };
-
-            let schema = setting.schema.as_str();
-            let key = setting.key.as_str();
-
-            schema_key_map.get(schema).and_then(|keys| {
-                keys.iter().find(|x| key == *x).map(|_| {
-                    let value = Types::from(match setting.value_type.as_str() {
-                        "bool" => Value::from(gio_wrap::get_value_from_schema_unchecked::<bool>(
-                            schema, key,
-                        )),
-                        "string" => Value::from(
-                            gio_wrap::get_value_from_schema_unchecked::<String>(schema, key),
-                        ),
-                        "double" => Value::from(gio_wrap::get_value_from_schema_unchecked::<f64>(
-                            schema, key,
-                        )),
-                        "int" => Value::from(gio_wrap::get_value_from_schema_unchecked::<i64>(
-                            schema, key,
-                        )),
-                        _ => unreachable!("Invalid value_type"),
-                    });
-                    (id, value)
-                })
-            })
+            Some((
+                id,
+                match setting {
+                    SettingsType::GioSettings(setting) => {
+                        let schema = setting.schema.as_str();
+                        let key = setting.key.as_str();
+                        let Some(setting) = schema_key_map.get(schema).and_then(|keys| {
+                            keys.iter()
+                                .find(|x| key == *x)
+                                .map(|_| setting.to_owned().into())
+                        }) else {
+                            return None;
+                        };
+                        setting
+                    }
+                    SettingsType::ModProbe(setting) => setting.to_owned().into(),
+                    _ => return None,
+                },
+            ))
         })
         .collect();
 

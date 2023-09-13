@@ -1,8 +1,9 @@
 use gio::{glib::FromVariant, prelude::*};
 use serde::Serialize;
+use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 
-use crate::settings::{Types, ApplySettings};
+use crate::settings::{ApplySettings, Types};
 
 #[derive(serde::Deserialize, Serialize, Debug, Clone)]
 pub struct GioSetting {
@@ -12,10 +13,25 @@ pub struct GioSetting {
     pub value: Option<Types>,
 }
 
+impl Into<Types> for GioSetting {
+    fn into(self) -> Types {
+        let setting = self;
+        let schema = setting.schema.as_str();
+        let key = setting.key.as_str();
+        Types::from(match setting.value_type.as_str() {
+            "bool" => Value::from(get_value_from_schema_unchecked::<bool>(schema, key)),
+            "string" => Value::from(get_value_from_schema_unchecked::<String>(schema, key)),
+            "double" => Value::from(get_value_from_schema_unchecked::<f64>(schema, key)),
+            "int" => Value::from(get_value_from_schema_unchecked::<i64>(schema, key)),
+            invalid_type => unreachable!("Invalid value_type {invalid_type}"),
+        })
+    }
+}
+
 impl ApplySettings for GioSetting {
-    fn apply(&mut self) -> Result<(), &'static str> {
+    fn apply(self) -> Result<(), &'static str> {
         let setting = gio::Settings::new(&self.schema);
-        let Some(value) = self.value.take() else {
+        let Some(value) = self.value else {
             return Err("No value to apply");
         };
 
