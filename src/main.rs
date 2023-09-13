@@ -108,7 +108,7 @@ async fn main() {
         .route("/get_all_config", get(get_all_configs))
         .with_state(settings_map);
 
-    _ = axum::Server::bind(&SocketAddr::from(([0, 0, 0, 0], 3000)))
+    axum::Server::bind(&SocketAddr::from(([0, 0, 0, 0], 3000)))
         .serve(app.into_make_service())
         .await
         .unwrap();

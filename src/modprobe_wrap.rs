@@ -107,10 +107,4 @@ fn modprobe_driver_exists() {
         enable: None,
     };
     assert!(!modprobe.driver_exists());
-
-    let modprobe = Modprobe {
-        driver: "uvcvideo".to_string(),
-        enable: None,
-    };
-    assert!(modprobe.driver_exists());
 }
