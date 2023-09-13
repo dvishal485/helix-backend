@@ -1,7 +1,37 @@
 use gio::{glib::FromVariant, prelude::*};
+use serde::Serialize;
 use std::collections::{HashMap, HashSet};
 
-use crate::settings::Types;
+use crate::settings::{Types, ApplySettings};
+
+#[derive(serde::Deserialize, Serialize, Debug, Clone)]
+pub struct GioSetting {
+    pub schema: String,
+    pub key: String,
+    pub value_type: String,
+    pub value: Option<Types>,
+}
+
+impl ApplySettings for GioSetting {
+    fn apply(&mut self) -> Result<(), &'static str> {
+        let setting = gio::Settings::new(&self.schema);
+        let Some(value) = self.value.take() else {
+            return Err("No value to apply");
+        };
+
+        if let Ok(_) = setting.set(self.key.as_str(), value) {
+            setting.apply();
+            gio::Settings::sync();
+            Ok(())
+        } else {
+            Err("Settings couldn't be applied.")
+        }
+    }
+
+    fn set_value(&mut self, value: Types) {
+        self.value = Some(value);
+    }
+}
 
 pub fn get_all_schema() -> HashSet<String> {
     gio::SettingsSchemaSource::default()
