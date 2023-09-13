@@ -103,14 +103,12 @@ async fn get_all_configs(
 
 #[tokio::main]
 async fn main() {
-    let settings_map = Box::leak(Box::new(construct_id_map()));
-    let settings_map = &*settings_map;
+    let settings_map: &HashMap<_, _> = Box::leak(Box::new(construct_id_map()));
 
     let app = Router::new()
         .route("/set_config", post(set_config))
         .route("/get_all_config", get(get_all_configs))
         .with_state(settings_map);
-    // .route("/set_config", get(get_configs));
 
     _ = axum::Server::bind(&SocketAddr::from(([0, 0, 0, 0], 3000)))
         .serve(app.into_make_service())
