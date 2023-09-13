@@ -49,7 +49,9 @@ impl ApplySettings for GioSetting {
     }
 }
 
+// @TODO: figure out settings2
 pub fn get_all_schema() -> HashSet<String> {
+    #[allow(unused_variables)]
     gio::SettingsSchemaSource::default()
         .iter()
         .map(|x| x.list_schemas(true))

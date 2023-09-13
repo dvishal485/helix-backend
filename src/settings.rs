@@ -1,6 +1,3 @@
-use std::borrow::Cow;
-
-use gio::{glib::FromVariant, prelude::*};
 use serde::Serialize;
 use serde_json::Value;
 

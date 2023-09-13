@@ -11,14 +11,12 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use serde::Serializer;
 use serde_json::{json, Value};
 use std::{collections::HashMap, net::SocketAddr};
 
 pub mod gio_wrap;
 pub mod modprobe_wrap;
 pub mod settings;
-use modprobe_wrap::*;
 use settings::*;
 
 fn construct_id_map() -> HashMap<u32, SettingsType> {
