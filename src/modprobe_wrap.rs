@@ -30,12 +30,12 @@ impl ApplySettings for Modprobe {
 
 impl Into<Types> for Modprobe {
     fn into(self) -> Types {
-        Types::Bool(self.driver_exists())
+        Types::Bool(self.driver_state())
     }
 }
 
 impl Modprobe {
-    fn driver_exists(&self) -> bool {
+    pub fn driver_exists(&self) -> bool {
         let mut cmd = Command::new("modprobe");
         cmd.arg("-n");
         cmd.arg(self.driver.clone());
@@ -47,7 +47,25 @@ impl Modprobe {
             }
         }
     }
-    fn disable_driver(self) -> Result<(), &'static str> {
+    pub fn driver_state(&self) -> bool {
+        let mut cmd = Command::new("lsmod");
+        match cmd.output() {
+            Ok(output) => {
+                if output.status.success() {
+                    let output = String::from_utf8(output.stdout).unwrap();
+                    output.contains(&self.driver)
+                } else {
+                    eprintln!("lsmod failed");
+                    false
+                }
+            }
+            Err(e) => {
+                eprintln!("{e}");
+                false
+            }
+        }
+    }
+    pub fn disable_driver(self) -> Result<(), &'static str> {
         let mut cmd = Command::new("sudo");
         cmd.arg("modprobe");
         cmd.arg("-r");
@@ -64,7 +82,7 @@ impl Modprobe {
             }
         }
     }
-    fn enable_driver(self) -> Result<(), &'static str> {
+    pub fn enable_driver(self) -> Result<(), &'static str> {
         let mut cmd = Command::new("sudo");
         cmd.arg("modprobe");
         cmd.arg(self.driver);

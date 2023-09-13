@@ -85,7 +85,13 @@ async fn get_all_configs(
                         };
                         setting
                     }
-                    SettingsType::ModProbe(setting) => setting.to_owned().into(),
+                    SettingsType::ModProbe(setting) => {
+                        if setting.driver_exists() {
+                            setting.to_owned().into()
+                        } else {
+                            return None;
+                        }
+                    }
                     _ => return None,
                 },
             ))
