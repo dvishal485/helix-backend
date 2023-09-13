@@ -75,17 +75,15 @@ async fn get_all_configs(
                     SettingsType::GioSettings(setting) => {
                         let schema = setting.schema.as_str();
                         let key = setting.key.as_str();
-                        let setting = schema_key_map.get(schema).and_then(|keys| {
-                            keys.iter().find(|x| key == *x).map(|_| setting.into())
-                        })?;
+                        let setting = schema_key_map
+                            .get(schema)?
+                            .iter()
+                            .any(|x| key == *x)
+                            .then(|| setting.into())?;
                         setting
                     }
                     SettingsType::ModProbe(setting) => {
-                        if setting.driver_exists() {
-                            setting.into()
-                        } else {
-                            return None;
-                        }
+                        setting.driver_exists().then(|| setting.into())?
                     }
                     SettingsType::CliSetting(_) => {
                         // @TODO: implement a checker fn to see curr state of the cli setting
@@ -120,4 +118,13 @@ async fn main() {
 fn construct_id_map_test() {
     let settings_map = construct_id_map();
     eprintln!("{:?}", settings_map);
+}
+
+#[test]
+fn static_variant_types() {
+    use gio::prelude::*;
+    eprintln!("{}", bool::static_variant_type().as_str());
+    eprintln!("{}", i64::static_variant_type().as_str());
+    eprintln!("{}", String::static_variant_type().as_str());
+    eprintln!("{}", f64::static_variant_type().as_str());
 }

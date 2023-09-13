@@ -18,13 +18,23 @@ impl Into<Types> for &GioSetting {
         let setting = self;
         let schema = setting.schema.as_str();
         let key = setting.key.as_str();
-        Types::from(match setting.value_type.as_str() {
+        let ret = Types::from(match setting.value_type.as_str() {
             "bool" => Value::from(get_value_from_schema_unchecked::<bool>(schema, key)),
             "string" => Value::from(get_value_from_schema_unchecked::<String>(schema, key)),
             "double" => Value::from(get_value_from_schema_unchecked::<f64>(schema, key)),
-            "int" => Value::from(get_value_from_schema_unchecked::<i64>(schema, key)),
+            "int" => Value::from(
+                try_get_value_from_schema_unchecked::<i64>(schema, key)
+                    .or_else(|| {
+                        try_get_value_from_schema_unchecked::<i32>(schema, key).map(|x| x as i64)
+                    })
+                    .or_else(|| {
+                        try_get_value_from_schema_unchecked::<u32>(schema, key).map(|x| x as i64)
+                    })
+                    .expect("Couldn't convert a given `int` type into either i64, i32, or u32."),
+            ),
             invalid_type => unreachable!("Invalid value_type {invalid_type}"),
-        })
+        });
+        ret
     }
 }
 
@@ -56,7 +66,7 @@ pub fn get_all_schema() -> HashSet<String> {
         .iter()
         .map(|x| x.list_schemas(true))
         .flat_map(
-            |(settings1, settings2)| settings1.into_iter(), /*.chain(settings2.into_iter()) */
+            |(settings1, settings2)| settings1.into_iter(), /* .chain(settings2.into_iter())*/
         )
         .map(|x| x.to_string())
         .collect()
@@ -118,6 +128,13 @@ pub fn get_value_from_schema_unchecked<T: FromVariant>(schema: &str, key: &str) 
     let setting = gio::Settings::new(schema);
     let value = setting.get::<T>(key);
     value
+}
+
+pub fn try_get_value_from_schema_unchecked<T: FromVariant>(schema: &str, key: &str) -> Option<T> {
+    let setting = gio::Settings::new(schema);
+    let value = setting.value(key);
+
+    FromVariant::from_variant(&value)
 }
 
 pub fn set_key_from_schema<T: Into<gio::glib::Variant>>(
