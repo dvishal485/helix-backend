@@ -14,6 +14,7 @@ use axum::{
 use serde_json::{json, Value};
 use std::{collections::HashMap, net::SocketAddr};
 
+pub mod cli_wrap;
 pub mod gio_wrap;
 pub mod modprobe_wrap;
 pub mod settings;
@@ -77,7 +78,7 @@ async fn get_all_configs(
                         let Some(setting) = schema_key_map.get(schema).and_then(|keys| {
                             keys.iter()
                                 .find(|x| key == *x)
-                                .map(|_| setting.to_owned().into())
+                                .map(|_| setting.into())
                         }) else {
                             return None;
                         };
@@ -85,12 +86,17 @@ async fn get_all_configs(
                     }
                     SettingsType::ModProbe(setting) => {
                         if setting.driver_exists() {
-                            setting.to_owned().into()
+                            setting.into()
                         } else {
                             return None;
                         }
                     }
-                    _ => return None,
+                    SettingsType::CliSetting(_) => {
+                        // @TODO: implement a checker fn to see curr state of the cli setting
+                        // probably by make new fields with commands to check state
+                        return None;
+                    }
+                    SettingsType::Invalid => return None,
                 },
             ))
         })

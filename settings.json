@@ -8,6 +8,14 @@
         "driver": "uvcvideo"
     },
     {
+        "type": "cli",
+        "id": 67,
+        "name": "Test function",
+        "description": "Test function to test if cli commands work",
+        "terminal": "shell",
+        "command": "echo 123"
+    },
+    {
         "description": "If TRUE, applications should not use the camera.",
         "id": 1,
         "key": "disable-camera",

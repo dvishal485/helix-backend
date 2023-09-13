@@ -1,7 +1,7 @@
 use serde::Serialize;
 use serde_json::Value;
 
-use crate::{modprobe_wrap::Modprobe, gio_wrap::GioSetting};
+use crate::{cli_wrap::CliSetting, gio_wrap::GioSetting, modprobe_wrap::Modprobe};
 
 /* This trait is applicable on all
  * types of settings, it is used
@@ -68,6 +68,7 @@ impl Into<gio::glib::Variant> for Types {
 pub enum SettingsType {
     GioSettings(GioSetting),
     ModProbe(Modprobe),
+    CliSetting(CliSetting),
     #[default]
     Invalid,
 }
@@ -76,7 +77,8 @@ impl ApplySettings for SettingsType {
     fn apply(self) -> Result<(), &'static str> {
         match self {
             SettingsType::GioSettings(x) => x.apply(),
-            Self::ModProbe(x) => x.apply(),
+            SettingsType::ModProbe(x) => x.apply(),
+            Self::CliSetting(x) => x.apply(),
             SettingsType::Invalid => Err("Invalid SettingsType"),
         }
     }
@@ -85,8 +87,8 @@ impl ApplySettings for SettingsType {
         match self {
             SettingsType::GioSettings(x) => x.set_value(value),
             SettingsType::ModProbe(x) => x.set_value(value),
+            Self::CliSetting(x) => x.set_value(value),
             SettingsType::Invalid => (),
         }
     }
 }
-

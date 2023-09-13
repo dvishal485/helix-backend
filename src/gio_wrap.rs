@@ -13,7 +13,7 @@ pub struct GioSetting {
     pub value: Option<Types>,
 }
 
-impl Into<Types> for GioSetting {
+impl Into<Types> for &GioSetting {
     fn into(self) -> Types {
         let setting = self;
         let schema = setting.schema.as_str();

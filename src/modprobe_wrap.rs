@@ -28,7 +28,7 @@ impl ApplySettings for Modprobe {
     }
 }
 
-impl Into<Types> for Modprobe {
+impl Into<Types> for &Modprobe {
     fn into(self) -> Types {
         Types::Bool(self.driver_state())
     }
