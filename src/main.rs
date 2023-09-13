@@ -5,14 +5,17 @@
  * Thanks for understanding.
  */
 use axum::{
+    body::{boxed, Body, BoxBody},
     extract::State,
-    http::StatusCode,
+    http::{Request, Response, StatusCode, Uri},
     response::IntoResponse,
     routing::{get, post},
     Json, Router,
 };
 use serde_json::{json, Value};
 use std::{collections::HashMap, net::SocketAddr};
+use tower::ServiceExt;
+use tower_http::services::ServeDir;
 
 pub mod cli_wrap;
 pub mod gio_wrap;
@@ -99,6 +102,34 @@ async fn get_all_configs(
     (StatusCode::OK, json!(matched_gio_settings).to_string())
 }
 
+async fn handler(uri: Uri) -> Result<Response<BoxBody>, (StatusCode, String)> {
+    if uri.path() == "/" {
+        return get_static_file("/index.html".parse::<Uri>().unwrap()).await;
+    }
+
+    let res = get_static_file(uri.clone()).await?;
+    if res.status() == StatusCode::NOT_FOUND {
+        match format!("{}.html", uri).parse() {
+            Ok(uri_html) => get_static_file(uri_html).await,
+            Err(_) => Err((StatusCode::INTERNAL_SERVER_ERROR, "Invalid URI".to_string())),
+        }
+    } else {
+        Ok(res)
+    }
+}
+
+async fn get_static_file(uri: Uri) -> Result<Response<BoxBody>, (StatusCode, String)> {
+    let req = Request::builder().uri(uri).body(Body::empty()).unwrap();
+
+    match ServeDir::new("./build").oneshot(req).await {
+        Ok(res) => Ok(res.map(boxed)),
+        Err(err) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Something went wrong: {}", err),
+        )),
+    }
+}
+
 #[tokio::main]
 async fn main() {
     let settings_map: &HashMap<_, _> = Box::leak(Box::new(construct_id_map()));
@@ -106,7 +137,13 @@ async fn main() {
     let app = Router::new()
         .route("/set_config", post(set_config))
         .route("/get_all_config", get(get_all_configs))
-        .with_state(settings_map);
+        .with_state(settings_map)
+        .nest_service("/", get(handler));
+
+    std::process::Command::new("xdg-open")
+        .arg("http://localhost:3000")
+        .spawn()
+        .expect("Failed to open browser");
 
     axum::Server::bind(&SocketAddr::from(([0, 0, 0, 0], 3000)))
         .serve(app.into_make_service())
