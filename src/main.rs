@@ -13,14 +13,15 @@ use axum::{
     Json, Router,
 };
 use serde_json::{json, Value};
-use std::{collections::HashMap, net::SocketAddr};
+use std::io::Write;
+use std::{collections::HashMap, io::Stdin, net::SocketAddr, process::Stdio};
 use tower::ServiceExt;
 use tower_http::services::ServeDir;
-
 pub mod cli_wrap;
 pub mod gio_wrap;
 pub mod modprobe_wrap;
 pub mod settings;
+pub mod util;
 use settings::*;
 
 fn construct_id_map() -> HashMap<u32, SettingsType> {
@@ -130,20 +131,38 @@ async fn get_static_file(uri: Uri) -> Result<Response<BoxBody>, (StatusCode, Str
     }
 }
 
+fn prepare_terminal_with_sudo_access() {
+    let mut proc = std::process::Command::new("sudo")
+        .arg("-S")
+        .arg("echo")
+        .arg("'hello'")
+        .stdin(Stdio::piped())
+        .spawn()
+        .expect("Failed to run sudo command");
+
+    proc.stdin
+        .take()
+        .unwrap()
+        .write_all(util::SUDO_PASS.as_bytes())
+        .expect("Failed to write to stdin of sudo command");
+}
+
 #[tokio::main]
 async fn main() {
     let settings_map: &HashMap<_, _> = Box::leak(Box::new(construct_id_map()));
+
+    prepare_terminal_with_sudo_access();
+
+    std::process::Command::new("xdg-open")
+        .arg("http://localhost:3000")
+        .spawn()
+        .expect("Failed to open browser");
 
     let app = Router::new()
         .route("/set_config", post(set_config))
         .route("/get_all_configs", get(get_all_configs))
         .with_state(settings_map)
         .nest_service("/", get(handler));
-
-    std::process::Command::new("xdg-open")
-        .arg("http://localhost:3000")
-        .spawn()
-        .expect("Failed to open browser");
 
     axum::Server::bind(&SocketAddr::from(([0, 0, 0, 0], 3000)))
         .serve(app.into_make_service())
