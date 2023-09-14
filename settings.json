@@ -15,7 +15,7 @@
         "value_type": "bool",
         "service_name": "ssh"
     },
- {
+    {
         "setting_type": "modprobe",
         "id": 66,
         "name": "Enable/Disable camera",

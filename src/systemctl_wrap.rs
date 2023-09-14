@@ -38,34 +38,16 @@ impl Into<Types> for &Systemctl {
 impl Systemctl {
     pub fn service_exists(&self) -> bool {
         let mut cmd = Command::new("systemctl");
-        match cmd.output() {
-            Ok(output) => {
-                //  println!("{:?}", String::from_utf8(output.stdout).unwrap());
-                std::str::from_utf8(&output.stdout)
-                    .expect("Couldn't convert output of cmd to UTF-8 string")
-                    .contains(self.service_name.as_str())
-            }
-            Err(e) => {
-                eprintln!("{e}");
-                false
-            }
-        }
+        cmd.arg("is-enabled").arg(self.service_name.as_str());
+        cmd.output().map_or(false, |op| !op.stdout.is_empty())
     }
 
     pub fn service_state(&self) -> bool {
         let mut cmd: Command = Command::new("systemctl");
         cmd.arg("is-active");
-        match cmd.output() {
-            Ok(output) => {
-                std::str::from_utf8(&output.stdout)
-                    .expect("Couldn't convert output of cmd to UTF-8 string")
-                    == "0"
-            }
-            Err(e) => {
-                eprintln!("{e}");
-                false
-            }
-        }
+        cmd.arg(self.service_name.as_str());
+        cmd.output()
+            .map_or(false, |op| op.stdout.starts_with(b"active"))
     }
 
     pub fn enable_service(self) -> Result<(), &'static str> {
@@ -77,7 +59,7 @@ impl Systemctl {
             Ok(output) => output
                 .status
                 .success()
-                .then(|| ())
+                .then_some(())
                 .ok_or("Failed to enable service"),
             Err(e) => {
                 eprintln!("{e}");
@@ -95,7 +77,7 @@ impl Systemctl {
             Ok(output) => output
                 .status
                 .success()
-                .then(|| ())
+                .then_some(())
                 .ok_or("Failed to disable service"),
             Err(e) => {
                 eprintln!("{e}");
@@ -108,9 +90,20 @@ impl Systemctl {
 #[test]
 fn systemctl_service_exists() {
     let systemctl = Systemctl {
-        service_name: "idontexist".to_string(),
+        service_name: "killme".to_string(),
         enable: None,
     };
-    println!("{}", systemctl.service_exists());
+    eprintln!("{}", systemctl.service_exists());
     assert!(!systemctl.service_exists());
 }
+
+// WHY: Our automated test suite doesn't have ssh and so will needlessly fail this test.
+// #[test]
+// fn service_state() {
+//     let systemctl = Systemctl {
+//         service_name: "ssh".to_string(),
+//         enable: None,
+//     };
+//     eprintln!("{}", systemctl.service_state());
+//     assert!(systemctl.service_state());
+// }
