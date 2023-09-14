@@ -71,7 +71,7 @@ impl Systemctl {
     pub fn enable_service(self) -> Result<(), &'static str> {
         let mut cmd = Command::new("sudo");
         cmd.arg("systemctl");
-        cmd.arg("enable");
+        cmd.arg("start");
         cmd.arg(self.service_name.as_str());
         match cmd.output() {
             Ok(output) => output
@@ -89,7 +89,7 @@ impl Systemctl {
     pub fn disable_service(self) -> Result<(), &'static str> {
         let mut cmd = Command::new("sudo");
         cmd.arg("systemctl");
-        cmd.arg("disable");
+        cmd.arg("stop");
         cmd.arg(self.service_name.as_str());
         match cmd.output() {
             Ok(output) => output
