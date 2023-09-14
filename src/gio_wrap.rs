@@ -45,12 +45,18 @@ impl ApplySettings for GioSetting {
             return Err("No value to apply");
         };
 
-        if let Ok(_) = setting.set(self.key.as_str(), value) {
-            setting.apply();
-            gio::Settings::sync();
-            Ok(())
+        //@HACK: Currently we rely on runtime type introspection to type coerce a value into what gio desires.
+        // might change settings.json later to reflect the exact types to avoid runtime type coercion issues.
+        if let Types::Int(value) = value {
+            setting
+                .set(self.key.as_str(), value)
+                .or_else(|_| setting.set(self.key.as_str(), value as u32))
+                .or_else(|_| setting.set(self.key.as_str(), value as i32))
+                .map_err(|_| "Couldn't set value.")
         } else {
-            Err("Settings couldn't be applied.")
+            setting
+                .set(self.key.as_str(), value)
+                .map_err(|_| "Couldn't set value.")
         }
     }
 
