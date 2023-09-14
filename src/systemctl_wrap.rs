@@ -1,11 +1,11 @@
 use crate::settings::ApplySettings;
-use serde::{Serialize, Deserialize};
-use std::process::Command;
 use crate::settings::Types;
+use serde::{Deserialize, Serialize};
+use std::process::Command;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Systemctl {
-    service_name: String, 
+    service_name: String,
     enable: Option<bool>,
 }
 
@@ -24,7 +24,7 @@ impl ApplySettings for Systemctl {
     fn set_value(&mut self, value: crate::settings::Types) {
         match value {
             Types::Bool(b) => self.enable = Some(b),
-            _ => panic!("Invalid type for Systemctl")
+            _ => panic!("Invalid type for Systemctl"),
         }
     }
 }
@@ -35,15 +35,16 @@ impl Into<Types> for &Systemctl {
     }
 }
 
-
 impl Systemctl {
-   pub fn service_exists(&self) -> bool {
+    pub fn service_exists(&self) -> bool {
         let mut cmd = Command::new("systemctl");
         match cmd.output() {
             Ok(output) => {
-              //  println!("{:?}", String::from_utf8(output.stdout).unwrap());
-               String::from_utf8(output.stdout).unwrap().contains(self.service_name.as_str())
-            },
+                //  println!("{:?}", String::from_utf8(output.stdout).unwrap());
+                std::str::from_utf8(&output.stdout)
+                    .unwrap()
+                    .contains(self.service_name.as_str())
+            }
             Err(e) => {
                 eprintln!("{e}");
                 false
@@ -63,13 +64,17 @@ impl Systemctl {
         }
     }
 
-   pub fn enable_service(self) -> Result<(), &'static str> {
+    pub fn enable_service(self) -> Result<(), &'static str> {
         let mut cmd = Command::new("sudo");
         cmd.arg("systemctl");
         cmd.arg("enable");
         cmd.arg(self.service_name.as_str());
         match cmd.output() {
-            Ok(output) => output.status.success().then(|| ()).ok_or("Failed to enable service"),
+            Ok(output) => output
+                .status
+                .success()
+                .then(|| ())
+                .ok_or("Failed to enable service"),
             Err(e) => {
                 eprintln!("{e}");
                 Err("Failed to run systemctl")
@@ -77,13 +82,17 @@ impl Systemctl {
         }
     }
 
-   pub fn disable_service(self) -> Result<(), &'static str> {
+    pub fn disable_service(self) -> Result<(), &'static str> {
         let mut cmd = Command::new("sudo");
         cmd.arg("systemctl");
         cmd.arg("disable");
         cmd.arg(self.service_name.as_str());
         match cmd.output() {
-            Ok(output) => output.status.success().then(|| ()).ok_or("Failed to disable service"),
+            Ok(output) => output
+                .status
+                .success()
+                .then(|| ())
+                .ok_or("Failed to disable service"),
             Err(e) => {
                 eprintln!("{e}");
                 Err("Failed to run systemctl")
@@ -101,4 +110,3 @@ fn systemctl_service_exists() {
     println!("{}", systemctl.service_exists());
     assert!(!systemctl.service_exists());
 }
-
