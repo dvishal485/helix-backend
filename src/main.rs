@@ -136,7 +136,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/set_config", post(set_config))
-        .route("/get_all_config", get(get_all_configs))
+        .route("/get_all_configs", get(get_all_configs))
         .with_state(settings_map)
         .nest_service("/", get(handler));
 
