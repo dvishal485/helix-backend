@@ -42,7 +42,7 @@ impl Systemctl {
             Ok(output) => {
                 //  println!("{:?}", String::from_utf8(output.stdout).unwrap());
                 std::str::from_utf8(&output.stdout)
-                    .unwrap()
+                    .expect("Couldn't convert output of cmd to UTF-8 string")
                     .contains(self.service_name.as_str())
             }
             Err(e) => {
@@ -56,7 +56,11 @@ impl Systemctl {
         let mut cmd: Command = Command::new("systemctl");
         cmd.arg("is-active");
         match cmd.output() {
-            Ok(output) => String::from_utf8(output.stdout).unwrap() == "0",
+            Ok(output) => {
+                std::str::from_utf8(&output.stdout)
+                    .expect("Couldn't convert output of cmd to UTF-8 string")
+                    == "0"
+            }
             Err(e) => {
                 eprintln!("{e}");
                 false

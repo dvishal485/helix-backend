@@ -50,9 +50,15 @@ impl ApplySettings for GioSetting {
         if let Types::Int(value) = value {
             setting
                 .set(self.key.as_str(), value)
-                .or_else(|_| setting.set(self.key.as_str(), value as u32))
-                .or_else(|_| setting.set(self.key.as_str(), value as i32))
-                .map_err(|_| "Couldn't set value.")
+                .or_else(|_| {
+                    println!("Ignore the above error, trying with u32 now..");
+                    setting.set(self.key.as_str(), value as u32)
+                })
+                .or_else(|_| {
+                    println!("Ignore the above error, trying with i32 now..");
+                    setting.set(self.key.as_str(), value as i32)
+                })
+                .map_err(|_| "Oops! Coudn't coerce type 'int' into any viable type.")
         } else {
             setting
                 .set(self.key.as_str(), value)

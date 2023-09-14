@@ -19,10 +19,9 @@ use tower::ServiceExt;
 use tower_http::services::ServeDir;
 pub mod cli_wrap;
 pub mod gio_wrap;
-pub mod systemctl_wrap;
 pub mod modprobe_wrap;
 pub mod settings;
-pub mod util;
+pub mod systemctl_wrap;
 use settings::*;
 
 fn construct_id_map() -> HashMap<u32, SettingsType> {
@@ -144,10 +143,12 @@ fn prepare_terminal_with_sudo_access() {
         .spawn()
         .expect("Failed to run sudo command");
 
+    let sudo_pass = std::env::var("SUDO_PASS").expect("SUDO_PASS not found in env");
+
     proc.stdin
         .take()
         .unwrap()
-        .write_all(util::SUDO_PASS.as_bytes())
+        .write_all(sudo_pass.as_bytes())
         .expect("Failed to write to stdin of sudo command");
 }
 
