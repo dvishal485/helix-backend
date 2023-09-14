@@ -1,9 +1,3 @@
-/*
- * I know the code is dirty, and I'm sorry about it.
- * I am an average developer, and I'm still learning.
- * Also I'm sleepy, so I'm not gonna clean it up.
- * Thanks for understanding.
- */
 use axum::{
     body::{boxed, Body, BoxBody},
     extract::State,
@@ -14,7 +8,7 @@ use axum::{
 };
 use serde_json::{json, Value};
 use std::io::Write;
-use std::{collections::HashMap, io::Stdin, net::SocketAddr, process::Stdio};
+use std::{collections::HashMap, net::SocketAddr, process::Stdio};
 use tower::ServiceExt;
 use tower_http::services::ServeDir;
 pub mod cli_wrap;
@@ -25,10 +19,7 @@ pub mod systemctl_wrap;
 use settings::*;
 
 fn construct_id_map() -> HashMap<u32, SettingsType> {
-    let settings = serde_json::from_str::<Vec<Value>>(
-        // &std::fs::read_to_string("settings.json").expect("settings.json not found"),
-        include_str!("../settings.json"),
-    );
+    let settings = serde_json::from_str::<Vec<Value>>(include_str!("../settings.json"));
     settings
         .expect("Couldn't construct settings map from settings.json")
         .into_iter()

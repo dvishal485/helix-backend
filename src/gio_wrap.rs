@@ -58,7 +58,7 @@ impl ApplySettings for GioSetting {
                     println!("Ignore the above error, trying with i32 now..");
                     setting.set(self.key.as_str(), value as i32)
                 })
-                .map_err(|_| "Oops! Coudn't coerce type 'int' into any viable type.")
+                .map_err(|_| " Oops! Coudn't coerce type 'int' into any viable type.")
         } else {
             setting
                 .set(self.key.as_str(), value)
