@@ -19,6 +19,7 @@ use tower::ServiceExt;
 use tower_http::services::ServeDir;
 pub mod cli_wrap;
 pub mod gio_wrap;
+pub mod systemctl_wrap;
 pub mod modprobe_wrap;
 pub mod settings;
 pub mod util;
@@ -88,6 +89,9 @@ async fn get_all_configs(
                     }
                     SettingsType::ModProbe(setting) => {
                         setting.driver_exists().then(|| setting.into())?
+                    }
+                    SettingsType::Systemctl(setting) => {
+                        setting.service_exists().then(|| setting.into())?
                     }
                     SettingsType::CliSetting(_) => {
                         // @TODO: implement a checker fn to see curr state of the cli setting

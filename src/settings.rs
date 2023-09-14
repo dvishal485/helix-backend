@@ -1,7 +1,7 @@
 use serde::Serialize;
 use serde_json::Value;
 
-use crate::{cli_wrap::CliSetting, gio_wrap::GioSetting, modprobe_wrap::Modprobe};
+use crate::{cli_wrap::CliSetting, gio_wrap::GioSetting, modprobe_wrap::Modprobe,systemctl_wrap::Systemctl};
 
 /* This trait is applicable on all
  * types of settings, it is used
@@ -69,6 +69,7 @@ pub enum SettingsType {
     GioSettings(GioSetting),
     ModProbe(Modprobe),
     CliSetting(CliSetting),
+    Systemctl(Systemctl),
     #[default]
     Invalid,
 }
@@ -79,6 +80,7 @@ impl ApplySettings for SettingsType {
             SettingsType::GioSettings(x) => x.apply(),
             SettingsType::ModProbe(x) => x.apply(),
             Self::CliSetting(x) => x.apply(),
+            SettingsType::Systemctl(x) => x.apply(),
             SettingsType::Invalid => Err("Invalid SettingsType"),
         }
     }
@@ -88,6 +90,7 @@ impl ApplySettings for SettingsType {
             SettingsType::GioSettings(x) => x.set_value(value),
             SettingsType::ModProbe(x) => x.set_value(value),
             Self::CliSetting(x) => x.set_value(value),
+            SettingsType::Systemctl(x) => x.set_value(value),
             SettingsType::Invalid => (),
         }
     }
