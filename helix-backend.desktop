@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Helix
+GenericName=Helix Backend
+Comment=Helix program to harden you Ubuntu based confiigurations.
+Exec=helix-backend
+Terminal=false
+Type=Application
+Keywords=Hardening;
+# Icon=/home/vishal/Projects/helix-backend/helix-backend-logo.png <- change this entry to path
+Categories=Utility;
+StartupNotify=true

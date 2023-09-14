@@ -1,6 +1,6 @@
 [
     {
-        "type": "cli",
+        "setting_type": "cli",
         "id": 100,
         "name": "Test function",
         "description": "Test function to test if cli commands work",
@@ -8,7 +8,7 @@
         "command": "echo 123"
     },
     {
-        "type": "modprobe",
+        "setting_type": "modprobe",
         "id": 66,
         "name": "Enable/Disable camera",
         "description": "Enable or Disable camera hardware",
